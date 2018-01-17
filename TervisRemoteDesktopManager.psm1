@@ -13,6 +13,7 @@ function New-TervisRDMNodeSession {
     [CmdletBinding()]
     param (
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$Computername,
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$SessionName,
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$EnvironmentName,
         [parameter(Mandatory,ValueFromPipelineByPropertyName)][ValidateSet("Windows Server 2016","CentOS","Linux")]$TemplateName
     )
@@ -24,9 +25,46 @@ function New-TervisRDMNodeSession {
         $RDMTemplate = Get-RDMTemplate | where-object name -eq "Linux Standard"
         $SessionType = "Putty"
     }
-    $RDMSession = New-RDMSession -TemplateID $RDMTemplate.ID -Host $Computername -Name $Computername -Type $SessionType -Group $EnvironmentName
+    $RDMSession = New-RDMSession -TemplateID $RDMTemplate.ID -Host $Computername -Name $SessionName -Type $SessionType -Group $EnvironmentName
     Set-RDMSession -Session $RDMSession 
     Update-RDMUI
     Set-RDMSessionProperty -ID $RDMSession.ID -Path MetaInformation -Property OS -Value $TemplateName
+}
 
+function New-TervisApplicationNodeRDMSession {
+    [CmdletBinding()]
+    param (
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$ComputerName,
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$EnvironmentName,
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$ApplicationName
+    )
+    Process {
+        $ApplicationDefinition = Get-TervisApplicationDefinition -Name $ApplicationName
+        $TemplateName = $ApplicationDefinition.VMOperatingSystemTemplateName
+        $HostSessionName = $ComputerName + ".tervis.prv"
+        $CNAMESessionName = $ApplicationName + ".$EnvironmentName" + ".tervis.prv"
+        $RDMSessionList = Get-RDMSession
+        if ($TemplateName -eq "Windows Server 2016"){
+            $RDMTemplate = Get-RDMTemplate | where name -eq "Windows RDP"
+            $SessionType = "RDPConfigured"
+        }
+        elseif (($TemplateName -eq "CentOS") -or ($TemplateName -eq "Linux")) {
+            $RDMTemplate = Get-RDMTemplate | where-object name -eq "Linux Standard"
+            $SessionType = "Putty"
+        }
+        if($RDMSessionList.Name -notcontains $HostSessionName){
+            $RDMSession = New-RDMSession -TemplateID $RDMTemplate.ID -Host $Computername -Name $HostSessionName -Type $SessionType -Group $EnvironmentName
+            Set-RDMSession -Session $RDMSession 
+            Update-RDMUI
+            Set-RDMSessionProperty -ID $RDMSession.ID -Path MetaInformation -Property OS -Value $TemplateName
+        }
+
+        if($RDMSessionList.Name -notcontains $CNAMESessionName){
+            $RDMSession = New-RDMSession -TemplateID $RDMTemplate.ID -Host $Computername -Name $CNAMESessionName -Type $SessionType -Group $EnvironmentName
+            Set-RDMSession -Session $RDMSession 
+            Update-RDMUI
+            Set-RDMSessionProperty -ID $RDMSession.ID -Path MetaInformation -Property OS -Value $TemplateName
+        }
+
+    }
 }
