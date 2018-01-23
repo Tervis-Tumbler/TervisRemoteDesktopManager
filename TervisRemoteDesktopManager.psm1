@@ -1,4 +1,6 @@
-﻿function Invoke-CreateOracleLinuxRDMSessions {
+﻿Import-Module "${env:ProgramFiles(x86)}\Devolutions\Remote Desktop Manager\RemoteDesktopManager.PowerShellModule.dll"
+
+function Invoke-CreateOracleLinuxRDMSessions {
     $OracleHosts = Get-TervisHostGroupCNAMEAndA -HostGroupName Oracle
     
     $OracleHosts | %{
