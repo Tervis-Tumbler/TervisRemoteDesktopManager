@@ -50,7 +50,7 @@ function New-TervisApplicationNodeRDMSession {
             $RDMTemplate = Get-RDMTemplate | where name -eq "Windows RDP"
             $SessionType = "RDPConfigured"
         }
-        elseif (($TemplateName -eq "CentOS") -or ($TemplateName -eq "Linux")) {
+        elseif (($TemplateName -eq "CentOS") -or ($TemplateName -eq "Linux") -or ($TemplateName -match "OEL")) {
             $RDMTemplate = Get-RDMTemplate | where-object name -eq "Linux Standard"
             $SessionType = "Putty"
         }
@@ -68,5 +68,21 @@ function New-TervisApplicationNodeRDMSession {
             Set-RDMSessionProperty -ID $RDMSession.ID -Path MetaInformation -Property OS -Value $TemplateName
         }
 
+    }
+}
+
+function Remove-TervisApplicationNodeRDMSession {
+    [CmdletBinding()]
+    param (
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$Name
+    )
+    Process {
+        $HostSessionName = $ComputerName + ".tervis.prv"
+        $RDMSessionList = Get-RDMSession
+        if($RDMSessionList.Name -contains $HostSessionName){
+            $RDMSession = Get-RDMSession -Name $HostSessionName
+            Remove-RDMSession -ID $RDMSession.ID
+            Update-RDMUI
+        }
     }
 }
