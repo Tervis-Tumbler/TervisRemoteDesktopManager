@@ -74,7 +74,7 @@ function New-TervisApplicationNodeRDMSession {
 function Remove-TervisApplicationNodeRDMSession {
     [CmdletBinding()]
     param (
-        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$Name
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$ComputerName
     )
     Process {
         $HostSessionName = $ComputerName + ".tervis.prv"
