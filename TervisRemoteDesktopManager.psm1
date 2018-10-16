@@ -17,10 +17,10 @@ function New-TervisRDMNodeSession {
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$Computername,
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$SessionName,
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$EnvironmentName,
-        [parameter(Mandatory,ValueFromPipelineByPropertyName)][ValidateSet("Windows Server 2016","CentOS","Linux")]$TemplateName
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)][ValidateSet("Windows Server 2016","Windows Server Datacenter","CentOS","Linux")]$TemplateName
     )
     Get-RDMDataSource -Name RDCManager | Set-RDMCurrentDataSource    
-    if ($TemplateName -eq "Windows Server 2016"){
+    if ($TemplateName -eq "Windows Server 2016","Windows Server Datacenter"){
         $RDMTemplate = Get-RDMTemplate | where name -eq "Windows RDP"
         $SessionType = "RDPConfigured"
     }
@@ -48,7 +48,7 @@ function New-TervisApplicationNodeRDMSession {
         $HostSessionName = $ComputerName + ".tervis.prv"
         $CNAMESessionName = $ApplicationName + ".$EnvironmentName" + ".tervis.prv"
         $RDMSessionList = Get-RDMSession
-        if ($TemplateName -eq "Windows Server 2016"){
+        if ($TemplateName -match "Windows"){
             $RDMTemplate = Get-RDMTemplate | where name -eq "Windows RDP"
             $SessionType = "RDPConfigured"
         }
