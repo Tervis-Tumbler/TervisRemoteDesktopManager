@@ -1,14 +1,19 @@
-﻿Import-Module "${env:ProgramFiles(x86)}\Devolutions\Remote Desktop Manager\RemoteDesktopManager.PowerShellModule.dll"
+﻿Import-Module "${env:ProgramFiles(x86)}\Devolutions\Remote Desktop Manager\RemoteDesktopManager.PowerShellModule.psd1"
 
 function Invoke-CreateOracleLinuxRDMSessions {
     $OracleHosts = Get-TervisHostGroupCNAMEAndA -HostGroupName Oracle
     
-    $OracleHosts | %{
+    $OracleHosts | % {
         $RDMSession = New-RDMSession -TemplateID $RDMTemplate.ID -Host $_.HostName -Name $_.HostName -Type putty -Group $_.EnvironmentName
         Set-RDMSession -Session $RDMSession 
         Update-RDMUI
         Set-RDMSessionProperty -ID $RDMSession.ID -Path MetaInformation -Property OS -Value Linux
     }
+}
+
+function Get-TervisRDMDataSource {
+    Get-RDMDataSource |
+    Where Type -eq SQLServer
 }
 
 function New-TervisRDMNodeSession {
@@ -17,14 +22,14 @@ function New-TervisRDMNodeSession {
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$Computername,
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$SessionName,
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$EnvironmentName,
-        [parameter(Mandatory,ValueFromPipelineByPropertyName)][ValidateSet("Windows Server 2016","CentOS","Linux")]$TemplateName
+        [parameter(Mandatory,ValueFromPipelineByPropertyName)]$TemplateName
     )
-    Get-RDMDataSource -Name RDCManager | Set-RDMCurrentDataSource    
-    if ($TemplateName -eq "Windows Server 2016"){
+    Get-TervisRDMDataSource | Set-RDMCurrentDataSource
+    if ($TemplateName -match "Windows Server") {
         $RDMTemplate = Get-RDMTemplate | where name -eq "Windows RDP"
         $SessionType = "RDPConfigured"
     }
-    elseif (($TemplateName -eq "CentOS") -or ($TemplateName -eq "Linux")) {
+    elseif (($TemplateName -in "CentOS", "Linux", "ArchLinux", "Debian 9") -or ($TemplateName -match "OEL")) {
         $RDMTemplate = Get-RDMTemplate | where-object name -eq "Linux Standard"
         $SessionType = "Putty"
     }
@@ -42,34 +47,19 @@ function New-TervisApplicationNodeRDMSession {
         [parameter(Mandatory,ValueFromPipelineByPropertyName)]$ApplicationName
     )
     Process {
-#        Get-RDMDataSource -Name RDCManager | Set-RDMCurrentDataSource    
         $ApplicationDefinition = Get-TervisApplicationDefinition -Name $ApplicationName
         $TemplateName = $ApplicationDefinition.VMOperatingSystemTemplateName
         $HostSessionName = $ComputerName + ".tervis.prv"
         $CNAMESessionName = $ApplicationName + ".$EnvironmentName" + ".tervis.prv"
+        
+        Get-TervisRDMDataSource | Set-RDMCurrentDataSource
         $RDMSessionList = Get-RDMSession
-        if ($TemplateName -eq "Windows Server 2016"){
-            $RDMTemplate = Get-RDMTemplate | where name -eq "Windows RDP"
-            $SessionType = "RDPConfigured"
+        
+        $HostSessionName, $CNAMESessionName |
+        Where-Object { $RDMSessionList.Name -notcontains $_ } |
+        ForEach-Object {
+            New-TervisRDMNodeSession -TemplateName $TemplateName -Computername $Computername -SessionName $_ -EnvironmentName $EnvironmentName
         }
-        elseif (($TemplateName -eq "CentOS") -or ($TemplateName -eq "Linux") -or ($TemplateName -match "OEL")) {
-            $RDMTemplate = Get-RDMTemplate | where-object name -eq "Linux Standard"
-            $SessionType = "Putty"
-        }
-        if($RDMSessionList.Name -notcontains $HostSessionName){
-            $RDMSession = New-RDMSession -TemplateID $RDMTemplate.ID -Host $Computername -Name $HostSessionName -Type $SessionType -Group $EnvironmentName
-            Set-RDMSession -Session $RDMSession 
-            Update-RDMUI
-            Set-RDMSessionProperty -ID $RDMSession.ID -Path MetaInformation -Property OS -Value $TemplateName
-        }
-
-        if($RDMSessionList.Name -notcontains $CNAMESessionName){
-            $RDMSession = New-RDMSession -TemplateID $RDMTemplate.ID -Host $Computername -Name $CNAMESessionName -Type $SessionType -Group $EnvironmentName
-            Set-RDMSession -Session $RDMSession 
-            Update-RDMUI
-            Set-RDMSessionProperty -ID $RDMSession.ID -Path MetaInformation -Property OS -Value $TemplateName
-        }
-
     }
 }
 
