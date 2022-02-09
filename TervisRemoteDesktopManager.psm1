@@ -29,7 +29,7 @@ function New-TervisRDMNodeSession {
         $RDMTemplate = Get-RDMTemplate | where name -eq "Windows RDP"
         $SessionType = "RDPConfigured"
     }
-    elseif (($TemplateName -in "CentOS", "Linux", "ArchLinux", "Debian 9") -or ($TemplateName -match "OEL")) {
+    elseif (($TemplateName -in "Cent OS", "Linux", "ArchLinux", "Debian 9") -or ($TemplateName -match "OEL")) {
         $RDMTemplate = Get-RDMTemplate | where-object name -eq "Linux Standard"
         $SessionType = "Putty"
     }
